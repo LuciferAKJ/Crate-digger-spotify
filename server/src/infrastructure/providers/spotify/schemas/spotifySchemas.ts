@@ -12,11 +12,13 @@ export const spotifySimplifiedArtistSchema = z.object({
 });
 
 export const spotifyFullArtistSchema = spotifySimplifiedArtistSchema.extend({
-  images: z.array(spotifyImageSchema).default([]),
-  popularity: z.number().default(0),
-  genres: z.array(z.string()).default([]),
-  followers: z.object({ total: z.number() }).optional(),
+  images: z.array(spotifyImageSchema).nullish().transform((val) => val ?? []),
+  popularity: z.number().nullish().transform((val) => val ?? 0),
+  genres: z.array(z.string()).nullish().transform((val) => val ?? []),
+  followers: z.object({ total: z.number().nullish() }).nullish(),
 });
+
+export const spotifyArtistResponseSchema = spotifyFullArtistSchema;
 
 export const spotifySimplifiedAlbumSchema = z.object({
   id: z.string(),
@@ -64,5 +66,6 @@ export const spotifySearchResponseSchema = z.object({
 
 export type SpotifySearchResponse = z.infer<typeof spotifySearchResponseSchema>;
 export type SpotifyFullArtist = z.infer<typeof spotifyFullArtistSchema>;
+export type SpotifyArtistResponse = SpotifyFullArtist;
 export type SpotifySimplifiedAlbum = z.infer<typeof spotifySimplifiedAlbumSchema>;
 export type SpotifyTrack = z.infer<typeof spotifyTrackSchema>;

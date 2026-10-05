@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { spotifySearchResponseSchema } from '../spotifySchemas.js';
+import { spotifyArtistResponseSchema, spotifySearchResponseSchema } from '../spotifySchemas.js';
 
 describe('spotifySearchResponseSchema (Spotify Feb 2026 Dev Mode compatibility)', () => {
   it('parses a response missing artist popularity/followers (fields removed in Dev Mode)', () => {
@@ -39,5 +39,80 @@ describe('spotifySearchResponseSchema (Spotify Feb 2026 Dev Mode compatibility)'
 
   it('accepts an empty response (no categories requested/returned)', () => {
     expect(spotifySearchResponseSchema.safeParse({}).success).toBe(true);
+  });
+});
+
+describe('spotifyArtistResponseSchema (Spotify Feb 2026 Dev Mode compatibility)', () => {
+  it('parses a complete Spotify artist response', () => {
+    const raw = {
+      id: '4Z8W4fKeB5YxbusRsdQVPb',
+      name: 'Radiohead',
+      images: [{ url: 'https://example.com/art.jpg', width: 640, height: 640 }],
+      popularity: 82,
+      genres: ['art rock', 'alternative rock'],
+      followers: { total: 9876543 },
+    };
+    const result = spotifyArtistResponseSchema.safeParse(raw);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({
+        id: '4Z8W4fKeB5YxbusRsdQVPb',
+        name: 'Radiohead',
+        images: [{ url: 'https://example.com/art.jpg', width: 640, height: 640 }],
+        popularity: 82,
+        genres: ['art rock', 'alternative rock'],
+        followers: { total: 9876543 },
+      });
+    }
+  });
+
+  it('parses an artist response missing optional fields (no images, popularity, genres, followers)', () => {
+    const raw = {
+      id: '4Z8W4fKeB5YxbusRsdQVPb',
+      name: 'Radiohead',
+    };
+    const result = spotifyArtistResponseSchema.safeParse(raw);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toEqual({
+        id: '4Z8W4fKeB5YxbusRsdQVPb',
+        name: 'Radiohead',
+        images: [],
+        popularity: 0,
+        genres: [],
+        followers: undefined,
+      });
+    }
+  });
+
+  it('handles null values in optional fields (null popularity, null images, null genres, null followers)', () => {
+    const raw = {
+      id: '4Z8W4fKeB5YxbusRsdQVPb',
+      name: 'Radiohead',
+      images: null,
+      popularity: null,
+      genres: null,
+      followers: null,
+    };
+    const result = spotifyArtistResponseSchema.safeParse(raw);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.popularity).toBe(0);
+      expect(result.data.images).toEqual([]);
+      expect(result.data.genres).toEqual([]);
+      expect(result.data.followers).toBeNull();
+    }
+  });
+
+  it('rejects a malformed artist response missing required id', () => {
+    const raw = { name: 'Radiohead' };
+    const result = spotifyArtistResponseSchema.safeParse(raw);
+    expect(result.success).toBe(false);
+  });
+
+  it('rejects a malformed artist response missing required name', () => {
+    const raw = { id: '4Z8W4fKeB5YxbusRsdQVPb' };
+    const result = spotifyArtistResponseSchema.safeParse(raw);
+    expect(result.success).toBe(false);
   });
 });

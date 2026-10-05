@@ -2,7 +2,7 @@ import type { Album, Artist, ReleaseType, SearchQuery, SearchResult, Track } fro
 import type { IMusicProvider } from '../../../domain/repositories/IMusicProvider.js';
 import { HttpError } from '../../../domain/errors/HttpError.js';
 import type { SpotifyHttpClient } from './SpotifyHttpClient.js';
-import { spotifySearchResponseSchema } from './schemas/spotifySchemas.js';
+import { spotifyArtistResponseSchema, spotifySearchResponseSchema } from './schemas/spotifySchemas.js';
 import { mapSpotifyAlbum, mapSpotifyArtist, mapSpotifyTrack } from './mappers/spotifyMappers.js';
 
 const emptyPaged = { items: [], total: 0, limit: 0, offset: 0 };
@@ -38,8 +38,18 @@ export class SpotifyMusicProvider implements IMusicProvider {
     };
   }
 
-  async getArtist(_id: string): Promise<Artist> {
-    throw new NotImplementedInPhaseError('getArtist', 3);
+  async getArtist(id: string): Promise<Artist> {
+    const raw = await this.http.get(`/artists/${encodeURIComponent(id)}`);
+
+    const parsed = spotifyArtistResponseSchema.safeParse(raw);
+    if (!parsed.success) {
+      throw new HttpError(502, {
+        code: 'UPSTREAM_UNAVAILABLE',
+        message: 'Received an unexpected response from the music catalog.',
+      });
+    }
+
+    return mapSpotifyArtist(parsed.data);
   }
 
   async getArtistDiscography(_id: string, _releaseType: ReleaseType): Promise<Album[]> {
